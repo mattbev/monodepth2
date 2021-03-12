@@ -96,7 +96,7 @@ def download_model_if_doesnt_exist(model_name):
 
     # see if we have the model already downloaded...
     if not os.path.exists(os.path.join(model_path, "encoder.pth")):
-
+        print(os.path.join(model_path, "encoder.pth"))
         model_url, required_md5checksum = download_paths[model_name]
 
         if not check_file_matches_md5(required_md5checksum, model_path + ".zip"):

@@ -59,7 +59,14 @@ class Trainer:
         self.models["depth"] = networks.DepthDecoder(
             self.models["encoder"].num_ch_enc, self.opt.scales)
         self.models["depth"].to(self.device)
+
+        #self.models["encoder"] = nn.DataParallel(self.models["encoder"])
+        #self.models["depth"] = nn.DataParallel(self.models["depth"])
+        #self.models["encoder"].cuda()
+        #self.models["depth"].cuda()
+
         self.parameters_to_train += list(self.models["depth"].parameters())
+
 
         if self.use_pose_net:
             if self.opt.pose_model_type == "separate_resnet":
@@ -111,8 +118,11 @@ class Trainer:
         print("Training is using:\n  ", self.device)
 
         # data
-        datasets_dict = {"kitti": datasets.KITTIRAWDataset,
-                         "kitti_odom": datasets.KITTIOdomDataset}
+        datasets_dict = {
+            # "kitti": datasets.KITTIRAWDataset,
+            # "kitti_odom": datasets.KITTIOdomDataset,
+            "blue_prius" : datasets.BluePriusRawDataset
+        }
         self.dataset = datasets_dict[self.opt.dataset]
 
         fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")

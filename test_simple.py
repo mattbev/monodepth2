@@ -40,12 +40,18 @@ def parse_args():
                             "mono+stereo_no_pt_640x192",
                             "mono_1024x320",
                             "stereo_1024x320",
-                            "mono+stereo_1024x320"])
+                            "mono+stereo_1024x320",
+                            "blue_prius_mono_finetuned",
+                            "blue_prius_mono_finetuned_short"])
     parser.add_argument('--ext', type=str,
                         help='image extension to search for in folder', default="jpg")
     parser.add_argument("--no_cuda",
                         help='if set, disables CUDA',
                         action='store_true')
+    parser.add_argument('--model_folder', type=str,
+                        help='folder of a pretrained model to use')
+    parser.add_argument('--save_to', type=str,
+                        help='where to save the results')
 
     return parser.parse_args()
 
@@ -53,16 +59,20 @@ def parse_args():
 def test_simple(args):
     """Function to predict for a single image or folder of images
     """
-    assert args.model_name is not None, \
-        "You must specify the --model_name parameter; see README.md for an example"
+    assert args.model_name is not None or args.model_folder is not None, \
+        "You must specify the --model_name or --model_folder parameter; see README.md for an example"
 
     if torch.cuda.is_available() and not args.no_cuda:
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
 
-    download_model_if_doesnt_exist(args.model_name)
-    model_path = os.path.join("models", args.model_name)
+    if args.model_name is not None:
+        download_model_if_doesnt_exist(args.model_name)
+    if args.model_folder is not None:
+        model_path = args.model_folder
+    else:
+        model_path = os.path.join("models", args.model_name)
     print("-> Loading model from ", model_path)
     encoder_path = os.path.join(model_path, "encoder.pth")
     depth_decoder_path = os.path.join(model_path, "depth.pth")
@@ -76,6 +86,9 @@ def test_simple(args):
     feed_height = loaded_dict_enc['height']
     feed_width = loaded_dict_enc['width']
     filtered_dict_enc = {k: v for k, v in loaded_dict_enc.items() if k in encoder.state_dict()}
+    #filtered_dict_enc = {k[7:]: v for k, v in loaded_dict_enc.items() if k[7:] in encoder.state_dict()}
+    #print(loaded_dict_enc.items())
+    #print(encoder.state_dict().items())
     encoder.load_state_dict(filtered_dict_enc)
     encoder.to(device)
     encoder.eval()
@@ -91,7 +104,10 @@ def test_simple(args):
     depth_decoder.eval()
 
     # FINDING INPUT IMAGES
-    if os.path.isfile(args.image_path):
+    if args.save_to is not None:
+        paths = [args.image_path]
+        output_directory = os.path.dirname(args.save_to)
+    elif os.path.isfile(args.image_path):
         # Only testing on a single image
         paths = [args.image_path]
         output_directory = os.path.dirname(args.image_path)
